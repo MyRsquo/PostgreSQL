@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: init-db-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: init
+          image: postgres:15
+          command: [ "sh", "-c" ]
+          args:
+            - |
+              until pg_isready -h postgresql -U {{ .Values.postgresql.user }};
+              do sleep 2; done;
+              psql -h postgresql -U {{ .Values.postgresql.user }} -d {{ .Values.postgresql.database }} <<EOF
+              CREATE TABLE IF NOT EXISTS test (id SERIAL PRIMARY KEY, name TEXT);
+              INSERT INTO test (name) SELECT 'Item ' || i FROM generate_series(1, 1000) AS i;
+              EOF
+          env:
+            - name: PGPASSWORD
+              value: {{ .Values.postgresql.password }}
+      restartPolicy: OnFailure
+

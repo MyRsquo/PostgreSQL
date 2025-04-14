@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pg-backup
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: backup
+              image: postgres:15
+              volumeMounts:
+                - name: postgredb
+                  mountPath: /backups
+              env:
+                - name: PGPASSWORD
+                  value: {{ .Values.postgresql.password }}
+              command:
+                - sh
+                - -c
+                - |
+                  mkdir -p /backups/pg-dumps
+                  timestamp=$(date +%Y%m%d%H%M%S)
+                  pg_dump -h postgresql -U {{ .Values.postgresql.user }} -d {{ .Values.postgresql.database }} -t test > /backups/pg-dumps/test_$timestamp.sql
+                  ls -1t /backups/pg-dumps/test_*.sql | tail -n +{{ add .Values.backup.retention 1 }} | xargs -r rm --
+          restartPolicy: OnFailure
+          volumes:
+            - name: postgredb
+              persistentVolumeClaim:
+                claimName: postgresql-pvc
+

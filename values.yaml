@@ -1,0 +1,20 @@
+postgresql:
+  image: postgres:15
+  user: myuser
+  password: mypassword
+  database: mydb
+  port: 5432
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: nfs-storage
+
+service:
+  type: NodePort
+  port: 5432
+  nodePort: 30007
+
+backup:
+  schedule: "*/5 * * * *"
+  retention: 10
+
